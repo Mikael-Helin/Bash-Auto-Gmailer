@@ -1,5 +1,14 @@
 [Unit]
+Description=Auto Gmailer emailing IP address changes
 After=network-online.target
 Wants=network-online.target
+
 [Service]
 ExecStart=/opt/myip/email-ip-changed.sh
+WorkingDirectory=/opt/myip/
+StandardOutput=journal
+StandardError=journal
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

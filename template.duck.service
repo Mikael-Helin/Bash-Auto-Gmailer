@@ -1,5 +1,14 @@
 [Unit]
+Description=DuckDNS Updater
 After=network-online.target
 Wants=network-online.target
+
 [Service]
 ExecStart=/opt/myip/duck.sh
+WorkingDirectory=/opt/myip/
+StandardOutput=journal
+StandardError=journal
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

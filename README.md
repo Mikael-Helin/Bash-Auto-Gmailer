@@ -143,6 +143,8 @@ Then create the cron entry:
 
 ### **7. Configure Systemd**
 
+For me, crontab never works, last time I saw it do as intended was years ago. Instead, it is better to use systemd.
+
 Copy service files
 
 ```bash
@@ -151,6 +153,10 @@ cp template.duck.service /etc/systemd/system/duck.service
 chmod 700 /etc/systemd/system/myip.service
 chmod 700 /etc/systemd/system/duck.service
 systemctl daemon-reload
+systemctl enable duck.service
+systemctl start duck.service
+systemctl enable myip.service
+systemctl start myip.service
 ```
 
 ### **8. Security Considerations**

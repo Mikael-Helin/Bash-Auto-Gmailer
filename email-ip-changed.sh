@@ -27,7 +27,7 @@ fi
 
 # File to store the last known IP
 mkdir -p ~/.myip
-IP_FILE="~/.myip/last_ip.txt"
+IP_FILE="$HOME/.myip/last_ip.txt"
 
 # Get current public IP
 CURRENT_IP=$(curl -s https://api.ipify.org)
