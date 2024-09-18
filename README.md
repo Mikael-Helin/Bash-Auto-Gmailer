@@ -22,25 +22,30 @@ cp email-ip-changed.sh /opt/myip/email-ip-changed.sh
 chmod +x /opt/myip/email-ip-changed.sh
 ```
 
-### **2. Configure Email Sending via Gmail**
-
 To send emails through your Gmail account, you need to configure an SMTP client like `ssmtp` or `msmtp`.
 
-#### **Install `ssmtp`**
+#### **Install `ssmtp` and `curl`**
 
 ```bash
 sudo apt-get update
 sudo apt-get install ssmtp curl
 ```
 
-#### **Configure `ssmtp`**
+### **2. Configure Email Sending via Gmail**
+
+There is `template.ssmtp.conf` you can copy to `/etc/ssmtp/ssmtp.conf`
+
+```bash
+mv /etc/ssmtp/ssmtp.conf /etc/ssmtp/ssmtp.conf_old
+cp template.ssmtp.conf /etc/ssmtp/ssmtp.conf
+```
 
 Edit the configuration file `/etc/ssmtp/ssmtp.conf`:
 
 ```ini
 root=FROM_EMAIL
 mailhub=smtp.gmail.com:587
-AuthUser=mikael.gummo@gmail.com
+AuthUser=FROM_EMAIL
 AuthPass=YOUR_APP_PASSWORD
 UseSTARTTLS=YES
 UseTLS=YES
@@ -52,9 +57,11 @@ FromLineOverride=YES
 - **App Password:** Since Google now requires OAuth 2.0 for authentication, you need to create an **App Password**.
 
   - Go to [Google Account Security](https://myaccount.google.com/security).
-  - Under "Signing in to Google," select **App Passwords**.
-  - Generate a new app password for "Mail" or "Other (Custom name)."
-  - Use this app password in the `AuthPass` field.
+  - Enable 2FA.
+  - Add app authenication.
+  - QR code scan with your mobile
+  - Generate a new app password for "AutoGmailer", remove spaces from the password, it becomes 16 chars long.
+  - Use this app password in the `AuthPass` field in ssmtp.conf.
 
 #### **Set Correct Permissions**
 
@@ -75,6 +82,16 @@ echo -e "Subject: Test Email\n\nThis is a test email." | ssmtp -v mikaelhelin@ya
 - Check your Yahoo inbox to confirm receipt.
 - If there are issues, run the command with `-v` for verbose output to debug.
 
+Now create the text file with your email in 
+
+  nano ~/.myip/email.txt
+
+then test your script with
+
+  /opt/myip/email-ip-changed.sh
+
+it loops, you will need to `ctrl + C` to exit.
+
 ### **4. Schedule the Script with Cron**
 
 Set up a cron job to run the script daily.
@@ -86,6 +103,11 @@ crontab -e
 ```
 
 #### **Add Cron Entry**
+
+If you want to run cron, comment out the 2 last lines in `email-ip-changed.sh`
+
+  #sleep 3600
+  #exec "$0"
 
 To run the script every day at 5:00 AM:
 
@@ -109,13 +131,33 @@ Instead or in addition to emailing yourself the updated IP address, using a Dyna
 
     https://www.duckdns.org/domains
 
-### **7. Security Considerations**
+Create the `/opt/myip/duck.sh` file as instrcuted at Duck DNS as well see look at the template file provided in this git clone.
+
+Then create the cron entry:
+
+```cron
+51 * * * * /opt/myip/duck.sh >> /opt/myip/myip.log 2>&1
+```
+
+### **7. Configure Systemd**
+
+Copy service files
+
+```bash
+cp template.myip.service /etc/systemd/system/myip.service
+cp template.duck.service /etc/systemd/system/duck.service
+chmod 700 /etc/systemd/system/myip.service
+chmod 700 /etc/systemd/system/duck.service
+systemctl daemon-reload
+```
+
+### **8. Security Considerations**
 
 - **Protect Credentials:** Never expose your Gmail password. Using an app password mitigates risks.
 - **Firewall Settings:** Ensure that outgoing connections to `smtp.gmail.com` on port `587` are allowed.
 - **Two-Factor Authentication:** Always enable 2FA on your accounts for added security.
 
-### **8. Troubleshooting**
+### **9. Troubleshooting**
 
 - **Email Not Sent:**
 
