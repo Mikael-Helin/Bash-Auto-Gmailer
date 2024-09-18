@@ -43,9 +43,9 @@ cp template.ssmtp.conf /etc/ssmtp/ssmtp.conf
 Edit the configuration file `/etc/ssmtp/ssmtp.conf`:
 
 ```ini
-root=FROM_EMAIL
+root=FROM_GMAIL
 mailhub=smtp.gmail.com:587
-AuthUser=FROM_EMAIL
+AuthUser=FROM_GMAIL
 AuthPass=YOUR_APP_PASSWORD
 UseSTARTTLS=YES
 UseTLS=YES
