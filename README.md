@@ -106,8 +106,10 @@ crontab -e
 
 If you want to run cron, comment out the 2 last lines in `email-ip-changed.sh`
 
-  #sleep 3600
-  #exec "$0"
+```bash
+#sleep 3600
+#exec "$0"
+```
 
 To run the script every day at 5:00 AM:
 
