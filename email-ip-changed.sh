@@ -13,7 +13,7 @@ if ! command -v curl &> /dev/null; then
 fi
 
 # Check if the email address file exists
-mkdir ~/.myip
+mkdir -p ~/.myip
 if [ ! -f ~/.myip/email.txt ]; then
     echo "Email address file not found. Please create a file named 'email.txt' in the '~/.myip' directory with your email address." >&2
     exit 1
@@ -26,38 +26,33 @@ if [ ! -f /etc/ssmtp/ssmtp.conf ]; then
 fi
 
 # File to store the last known IP
-mkdir -p ~/.myip
 IP_FILE="$HOME/.myip/last_ip.txt"
 
-# Get current public IP
-CURRENT_IP=$(curl -s https://api.ipify.org)
+# Get the hostname
+HOSTNAME=$(hostname -f)
 
-# If IP_FILE does not exist, create it
-touch "$IP_FILE"
+# Read the target email address
+EMAIL=$(cat ~/.myip/email.txt)
 
-# Read the last known IP
-if [ -f "$IP_FILE" ]; then
+while true; do
+    # Get current public IP
+    CURRENT_IP=$(curl -s https://api.ipify.org)
+
+    # If IP_FILE does not exist, create it
+    touch "$IP_FILE"
+
+    # Read the last known IP
     LAST_IP=$(cat "$IP_FILE")
-else
-    LAST_IP=""
-fi
 
-# Compare IPs
-if [ "$CURRENT_IP" != "$LAST_IP" ]; then
-    # Save the new IP
-    echo "$CURRENT_IP" > "$IP_FILE"
+    # Compare IPs
+    if [ "$CURRENT_IP" != "$LAST_IP" ]; then
+        # Save the new IP
+        echo "$CURRENT_IP" > "$IP_FILE"
 
-    # Get the hostname
-    HOSTNAME=$(hostname -f)
+        # Send an email notification
+        echo -e "Subject: IP Address for $HOSTNAME has changed\n\nThe new IP address is: $CURRENT_IP" | ssmtp -v "$EMAIL"
+    fi
 
-    # Read the target email address
-    EMAIL=$(cat ~/.myip/email.txt)
-
-    # Send an email notification
-    echo "Subject: IP Address for $HOSTNAME has changed\n\nThe new IP address is: $CURRENT_IP"
-    echo -e "Subject: IP Address for $HOSTNAME has changed\n\nThe new IP address is: $CURRENT_IP" | ssmtp -v "$EMAIL"
-fi
-
-# Sleep for 60 minutes and run the script again
-sleep 3600
-exec "$0"
+    # Sleep for 60 minutes before checking again
+    sleep 3600
+done

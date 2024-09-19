@@ -76,7 +76,7 @@ sudo chmod 640 /etc/ssmtp/ssmtp.conf
 Before automating, test if you can send an email:
 
 ```bash
-echo -e "Subject: Test Email\n\nThis is a test email." | ssmtp -v mikaelhelin@yahoo.com
+echo -e "Subject: Test Email\n\nThis is a test email." | ssmtp -v YOUR_EMAIL
 ```
 
 - Check your Yahoo inbox to confirm receipt.
@@ -90,9 +90,11 @@ then test your script with
 
   /opt/myip/email-ip-changed.sh
 
-it loops, you will need to `ctrl + C` to exit.
+it loops, so you will need to `ctrl + C` to exit.
 
 ### **4. Schedule the Script with Cron**
+
+Skip this step if you use Systemd.
 
 Set up a cron job to run the script daily.
 
@@ -127,7 +129,7 @@ Modify the cron entry:
 0 5 * * * /opt/myip/email-ip-changed.sh >> /opt/myip/myip.log 2>&1
 ```
 
-### **6. Consider Using Duck DNS**
+### **6. Consider Using Duck DNS (Optional)**
 
 Instead or in addition to emailing yourself the updated IP address, using a Dynamic DNS service can automatically map a domain name to your changing IP address.
 
@@ -135,7 +137,7 @@ Instead or in addition to emailing yourself the updated IP address, using a Dyna
 
 Create the `/opt/myip/duck.sh` file as instrcuted at Duck DNS as well see look at the template file provided in this git clone.
 
-Then create the cron entry:
+Then create the cron entry if you don't use Systemd:
 
 ```cron
 51 * * * * /opt/myip/duck.sh >> /opt/myip/myip.log 2>&1
@@ -145,7 +147,7 @@ Then create the cron entry:
 
 For me, crontab never works, last time I saw it do as intended was years ago. Instead, it is better to use systemd.
 
-Copy service files
+Copy service files and start and enable Systemd services for both myip.service and duck.service
 
 ```bash
 cp template.myip.service /etc/systemd/system/myip.service
@@ -183,5 +185,5 @@ systemctl start myip.service
 
 - **Script:** Monitors IP changes and triggers email notifications.
 - **Email Configuration:** Uses `ssmtp` to send emails via Gmail's SMTP server.
-- **Automation:** Cron schedules daily checks.
+- **Automation:** Cron schedules daily checks, or even better, Systemd.
 - **Alternative Solution:** Dynamic DNS offers a more seamless way to handle dynamic IPs.
