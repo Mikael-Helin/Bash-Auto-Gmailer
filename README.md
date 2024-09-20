@@ -17,7 +17,7 @@ You can use a simple Bash script that:
 Move the email-ip-changed.sh file to /opt/myip/
 
 ```bash
-mkdir -p /opt/myip/
+mkdir -p /opt/myip/data/
 cp email-ip-changed.sh /opt/myip/email-ip-changed.sh
 chmod +x /opt/myip/email-ip-changed.sh
 ```
@@ -169,17 +169,11 @@ systemctl start myip.service
 
 ### **9. Troubleshooting**
 
-- **Email Not Sent:**
+To find errors, write
 
-  - Check internet connectivity.
-  - Verify SMTP settings in `ssmtp.conf`.
-  - Look into `/var/log/mail.log` or `/var/log/syslog` for errors.
-
-- **Cron Job Issues:**
-
-  - Ensure the script runs properly manually.
-  - Check cron logs for any errors.
-  - Make sure paths in the script are absolute, not relative.
+```bash
+journalctl -u myip.service -f
+```
 
 ### **Summary**
 

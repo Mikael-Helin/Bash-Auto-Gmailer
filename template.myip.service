@@ -4,11 +4,14 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ExecStart=/opt/myip/email-ip-changed.sh
 WorkingDirectory=/opt/myip/
 StandardOutput=journal
 StandardError=journal
 Restart=on-failure
+RestartSec=60
+Type=simple
 
 [Install]
 WantedBy=multi-user.target
