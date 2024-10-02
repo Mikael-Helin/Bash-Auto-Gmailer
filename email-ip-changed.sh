@@ -8,16 +8,16 @@ DATA_DIR="/opt/myip/data"
 DATA_FILE="$DATA_DIR/last_ip.txt"
 EMAIL_FILE="$DATA_DIR/email.txt"
 
-mkdir -p $DATA_DIR
+mkdir -p "$DATA_DIR" || { echo "Failed to create $DATA_DIR"; exit 1; }
 
-# Check if the /usr/sbin/ssmtp package is installed
-if ! command -v /usr/sbin/ssmtp &> /dev/null; then
-    echo "/usr/sbin/ssmtp is not installed. Please install it using 'sudo apt install /usr/sbin/ssmtp'." >&2
+# Check if the ssmtp package is installed
+if ! command -v ssmtp &> /dev/null; then
+    echo "ssmtp is not installed. Please install it using 'sudo apt install ssmtp'." >&2
     exit 1
 fi
 
 # Check if the curl package is installed
-if ! command -v /usr/bin/curl &> /dev/null; then
+if ! command -v curl &> /dev/null; then
     echo "curl is not installed. Please install it using 'sudo apt install curl'." >&2
     exit 1
 fi
@@ -30,19 +30,22 @@ fi
 
 # Function to trim a string
 trim() {
-    S="$1"
-    S=$(echo "$S" | tr -d '[:space:]')
-    S=$(echo "$S" | tr -d '\n')
-    S=$(echo "$S" | tr -d '\r')
-    echo "$S"
+    echo "$1" | tr -d '[:space:]' | tr -d '\n' | tr -d '\r'
+}
+
+# Function for logging
+log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1"
 }
 
 # Check if the email address file exists
-if [ ! -f $EMAIL_FILE ]; then
-    echo "Email address file not found. Please create the file $EMAIL_FILE containing your email address." >&2
+if [ ! -f "$EMAIL_FILE" ]; then
+    log "Email address file not found. Please create the file $EMAIL_FILE containing your email address." >&2
     exit 1
 fi
-EMAIL=$(cat "$EMAIL_FILE")
+
+# Read and trim the email
+EMAIL=$(cat "$EMAIL_FILE" 2>/dev/null) || { log "Failed to read email file"; exit 1; }
 EMAIL=$(trim "$EMAIL")
 
 # Get the hostname
@@ -50,49 +53,57 @@ HOSTNAME=$(hostname -f)
 
 # Function to get the current public IP
 get_current_ip() {
-    IP=$(/usr/bin/curl -s https://api.ipify.org)
-    IP=$(trim "$IP")
-    echo "$IP"
+    IP=$(curl -s https://api.ipify.org)
+    echo "$(trim "$IP")"
 }
 
 # Function to read the last known IP
 get_last_ip() {
-    IP=$(cat "$DATA_FILE")
-    IP=$(trim "$IP")
-    echo "$IP"
+    if [ -f "$DATA_FILE" ]; then
+        IP=$(cat "$DATA_FILE" 2>/dev/null)
+        echo "$(trim "$IP")"
+    else
+        echo ""
+    fi
 }
 
 # If last IP file does not exist then create it
 if [ ! -f "$DATA_FILE" ]; then
-    echo "Creating $DATA_FILE"
+    log "Creating $DATA_FILE"
     LAST_IP=$(get_current_ip)
-    LAST_IP=$(trim "$LAST_IP")
-    echo "$LAST_IP" > "$DATA_FILE" || { echo "Failed to create $DATA_FILE"; exit 1; }
+    echo "$LAST_IP" > "$DATA_FILE" || { log "Failed to create $DATA_FILE"; exit 1; }
 fi
 
-while true; do
-    # Get the current IP, if it is empty then wait for 1 hour and try again
-    CURRENT_IP=$(get_current_ip)
-    if [ -z "$CURRENT_IP" ]; then
-        sleep 3600
-        continue
-    fi
-    # Get the last IP, if it is empty then insert the current IP and wait for 1 hour
-    LAST_IP=$(get_last_ip)
-    if [ -z "$LAST_IP" ]; then
-        echo "Inserting current IP into $DATA_FILE"
-        echo "$CURRENT_IP" > "$DATA_FILE" || { echo "Failed to write to $DATA_FILE"; exit 1; }
-        sleep 3600
-        continue
-    fi
-    # If the current IP is different from the last IP, then update the last IP and send an email
-    if [ "$CURRENT_IP" != "$LAST_IP" ]; then
-        echo "IP has changed. Updating $DATA_FILE"
-        echo "$CURRENT_IP" > "$DATA_FILE" || { echo "Failed to write to $DATA_FILE"; exit 1; }
+# Set up a trap to handle exit
+trap "log 'Shutting down...'; exit 0" SIGINT SIGTERM
 
-        echo -e "Subject: IP Address for $HOSTNAME has changed\n\nThe new IP address is: $CURRENT_IP" | /usr/sbin/ssmtp -v "$EMAIL"
+while true; do
+    log "Checking current IP..."
+    CURRENT_IP=$(get_current_ip)
+    
+    if [ -z "$CURRENT_IP" ]; then
+        log "Current IP is empty, waiting 1 hour before retry."
+        sleep 3600
+        continue
+    fi
+
+    LAST_IP=$(get_last_ip)
+    
+    if [ -z "$LAST_IP" ]; then
+        log "No last IP found, inserting current IP."
+        echo "$CURRENT_IP" > "$DATA_FILE" || { log "Failed to write to $DATA_FILE"; exit 1; }
+        sleep 3600
+        continue
+    fi
+
+    if [ "$CURRENT_IP" != "$LAST_IP" ]; then
+        log "IP has changed from $LAST_IP to $CURRENT_IP. Updating $DATA_FILE and sending email."
+        echo "$CURRENT_IP" > "$DATA_FILE" || { log "Failed to write to $DATA_FILE"; exit 1; }
+
+        echo -e "Subject: IP Address for $HOSTNAME has changed\n\nThe new IP address is: $CURRENT_IP" | ssmtp -v "$EMAIL"
+        
         if [ $? -ne 0 ]; then
-            echo "Failed to send email"
+            log "Failed to send email"
             exit 1
         fi
     fi

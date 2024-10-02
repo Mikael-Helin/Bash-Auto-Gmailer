@@ -161,13 +161,29 @@ systemctl enable myip.service
 systemctl start myip.service
 ```
 
-### **8. Security Considerations**
+### **8. Stopping**
+
+To stop
+
+```bash
+systemctl stop myip
+```
+
+If systemd stopping didn't work, then 
+
+```bash
+kill -9 ${pidof -x email-ip-changed.sh}
+```
+
+then use `kill -9 <pid>`.
+
+### **9. Security Considerations**
 
 - **Protect Credentials:** Never expose your Gmail password. Using an app password mitigates risks.
 - **Firewall Settings:** Ensure that outgoing connections to `smtp.gmail.com` on port `587` are allowed.
 - **Two-Factor Authentication:** Always enable 2FA on your accounts for added security.
 
-### **9. Troubleshooting**
+### **10. Troubleshooting**
 
 To find errors, write
 
